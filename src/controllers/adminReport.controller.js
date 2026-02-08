@@ -15,7 +15,6 @@ const getAllReportsAdmin = async (req, res) => {
             .populate('state_id', 'name')
             .populate('city_id', 'name')
             .populate('lga_id', 'name')
-            .populate('community_id', 'name')
             .sort('-createdAt');
 
         // Enhance with affected count
@@ -57,7 +56,31 @@ const updateReportStatus = async (req, res) => {
     }
 };
 
+// @desc    Delete report
+// @route   DELETE /api/admin/reports/:id
+// @access  Private/Admin
+const deleteReport = async (req, res) => {
+    try {
+        const report = await Report.findById(req.params.id);
+
+        if (!report) {
+            return res.status(404).json({ message: 'Report not found' });
+        }
+
+        // Delete associated affected records
+        await AffectedReport.deleteMany({ report_id: report._id });
+
+        // Delete the report
+        await report.deleteOne();
+
+        res.json({ message: 'Report and associated data deleted' });
+    } catch (error) {
+        res.status(400).json({ message: error.message });
+    }
+};
+
 module.exports = {
     getAllReportsAdmin,
-    updateReportStatus
+    updateReportStatus,
+    deleteReport
 };

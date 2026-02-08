@@ -14,6 +14,7 @@ const createReport = async (req, res) => {
             state_id,
             city_id,
             lga_id,
+            community_name,
             community_id,
             address_text,
             lat,
@@ -29,7 +30,8 @@ const createReport = async (req, res) => {
             state_id,
             city_id,
             lga_id,
-            community_id,
+            community_name,
+            community_id: community_id || null,
             address_text,
             lat,
             lng,
@@ -48,13 +50,14 @@ const createReport = async (req, res) => {
 // @access  Public
 const getReports = async (req, res) => {
     try {
-        const { state, city, lga, community, category, type } = req.query;
+        const { state, city, lga, community, community_id, category, type } = req.query;
         let query = {};
 
         if (state) query.state_id = state;
         if (city) query.city_id = city;
         if (lga) query.lga_id = lga;
-        if (community) query.community_id = community;
+        if (community) query.community_name = { $regex: community, $options: 'i' };
+        if (community_id) query.community_id = community_id;
         if (category) query.category = category;
         if (type) query.type = type;
 
@@ -67,7 +70,6 @@ const getReports = async (req, res) => {
             .populate('state_id', 'name')
             .populate('city_id', 'name')
             .populate('lga_id', 'name')
-            .populate('community_id', 'name')
             .sort('-createdAt')
             .skip(skip)
             .limit(limit);
@@ -111,8 +113,7 @@ const getReportById = async (req, res) => {
         const report = await Report.findById(req.params.id)
             .populate('state_id', 'name')
             .populate('city_id', 'name')
-            .populate('lga_id', 'name')
-            .populate('community_id', 'name');
+            .populate('lga_id', 'name');
 
         if (!report) {
             return res.status(404).json({ message: 'Report not found' });
@@ -135,8 +136,8 @@ const getReportById = async (req, res) => {
 const markAffected = async (req, res) => {
     try {
         const report_id = req.params.id;
-        const ip_address = req.ip || req.headers['x-forwarded-for'] || req.connection.remoteAddress;
-        const { fingerprint } = req.body;
+        const ip_address = req.ip || req.headers['x-forwarded-for'] || req.connection.remoteAddress || '127.0.0.1';
+        const { fingerprint } = req.body || {};
 
         const alreadyAffected = await AffectedReport.findOne({ report_id, ip_address });
         if (alreadyAffected) {
@@ -171,9 +172,46 @@ const removeAffected = async (req, res) => {
     }
 };
 
+// @desc    Get reports for a specific community
+// @route   GET /api/reports/community/:communityId
+// @access  Public
+const getReportsByCommunity = async (req, res) => {
+    try {
+        const query = { community_id: req.params.communityId };
+
+        const reports = await Report.find(query)
+            .populate('state_id', 'name')
+            .populate('city_id', 'name')
+            .populate('lga_id', 'name')
+            .sort('-createdAt');
+
+        const reportIds = reports.map(r => r._id);
+        const affectedCounts = await AffectedReport.aggregate([
+            { $match: { report_id: { $in: reportIds } } },
+            { $group: { _id: '$report_id', count: { $sum: 1 } } }
+        ]);
+
+        const countMap = {};
+        affectedCounts.forEach(item => {
+            countMap[item._id.toString()] = item.count;
+        });
+
+        const results = reports.map(report => {
+            const reportObj = report.toObject();
+            reportObj.affected_count = countMap[report._id.toString()] || 0;
+            return reportObj;
+        });
+
+        res.json(results);
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+};
+
 module.exports = {
     createReport,
     getReports,
+    getReportsByCommunity,
     getReportById,
     markAffected,
     removeAffected

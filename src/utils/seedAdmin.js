@@ -13,7 +13,7 @@ const seedAdmin = async () => {
 
         const admin = new Admin({
             email: 'admin@reportam.com',
-            password: 'password' // Will be hashed by pre-save hook
+            password: 'password123' // Will be hashed by pre-save hook
         });
 
         await admin.save();

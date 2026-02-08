@@ -1,3 +1,8 @@
 .env
 node_modules/
 package-lock.json
+tests/
+test_error.log
+test_new_error.log
+reportam_postman_collection.json
+test_output.log

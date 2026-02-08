@@ -4,12 +4,14 @@ const {
     getStates,
     getCities,
     getLGAs,
-    getCommunities
+    getCommunities,
+    getGlobalCommunities
 } = require('../controllers/location.controller');
 
 router.get('/states', getStates);
 router.get('/states/:stateId/cities', getCities);
 router.get('/cities/:cityId/lgas', getLGAs);
 router.get('/lgas/:lgaId/communities', getCommunities);
+router.get('/communities', getGlobalCommunities);
 
 module.exports = router;

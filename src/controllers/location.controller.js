@@ -54,9 +54,26 @@ const getCommunities = async (req, res) => {
     }
 };
 
+// @desc    Get all approved communities globally
+// @route   GET /api/locations/communities
+// @access  Public
+const getGlobalCommunities = async (req, res) => {
+    try {
+        const communities = await Community.find({ is_approved: true })
+            .populate('state_id', 'name')
+            .populate('city_id', 'name')
+            .populate('lga_id', 'name')
+            .sort('name');
+        res.json(communities);
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+};
+
 module.exports = {
     getStates,
     getCities,
     getLGAs,
-    getCommunities
+    getCommunities,
+    getGlobalCommunities
 };

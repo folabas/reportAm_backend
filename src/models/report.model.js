@@ -35,13 +35,18 @@ const reportSchema = new mongoose.Schema({
         ref: 'LGA',
         required: true
     },
-    community_id: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: 'Community',
+    community_name: {
+        type: String,
         default: null,
+        trim: true,
         required: function () {
             return this.type === 'community';
         }
+    },
+    community_id: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Community',
+        default: null
     },
     address_text: {
         type: String,
@@ -67,12 +72,11 @@ const reportSchema = new mongoose.Schema({
     }
 }, { timestamps: true });
 
-// Validation for general report (community_id must be null)
-reportSchema.pre('validate', function (next) {
-    if (this.type === 'general' && this.community_id !== null) {
-        this.community_id = null;
+// Validation for general report (community_name must be null)
+reportSchema.pre('validate', function () {
+    if (this.type === 'general' && this.community_name !== null) {
+        this.community_name = null;
     }
-    next();
 });
 
 module.exports = mongoose.model('Report', reportSchema);

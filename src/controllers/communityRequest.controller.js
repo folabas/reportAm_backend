@@ -33,7 +33,7 @@ const createCommunityRequest = async (req, res) => {
 };
 
 // @desc    Get all community requests
-// @route   GET /api/admin/community-requests
+// @route   GET /api/community-requests/admin
 // @access  Private/Admin
 const getCommunityRequests = async (req, res) => {
     try {
