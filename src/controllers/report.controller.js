@@ -12,7 +12,7 @@ const createReport = async (req, res) => {
             image,
             description,
             state_id,
-            city_id,
+            city,
             lga_id,
             community_name,
             community_id,
@@ -28,7 +28,7 @@ const createReport = async (req, res) => {
             image,
             description,
             state_id,
-            city_id,
+            city,
             lga_id,
             community_name,
             community_id: community_id || null,
@@ -54,7 +54,7 @@ const getReports = async (req, res) => {
         let query = {};
 
         if (state) query.state_id = state;
-        if (city) query.city_id = city;
+        if (city) query.city = { $regex: city, $options: 'i' };
         if (lga) query.lga_id = lga;
         if (community) query.community_name = { $regex: community, $options: 'i' };
         if (community_id) query.community_id = community_id;
@@ -68,7 +68,6 @@ const getReports = async (req, res) => {
 
         const reports = await Report.find(query)
             .populate('state_id', 'name')
-            .populate('city_id', 'name')
             .populate('lga_id', 'name')
             .sort('-createdAt')
             .skip(skip)
@@ -112,7 +111,6 @@ const getReportById = async (req, res) => {
     try {
         const report = await Report.findById(req.params.id)
             .populate('state_id', 'name')
-            .populate('city_id', 'name')
             .populate('lga_id', 'name');
 
         if (!report) {
@@ -181,7 +179,6 @@ const getReportsByCommunity = async (req, res) => {
 
         const reports = await Report.find(query)
             .populate('state_id', 'name')
-            .populate('city_id', 'name')
             .populate('lga_id', 'name')
             .sort('-createdAt');
 

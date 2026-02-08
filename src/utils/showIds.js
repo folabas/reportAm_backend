@@ -1,7 +1,6 @@
 const mongoose = require('mongoose');
 const dotenv = require('dotenv');
 const State = require('../models/state.model');
-const City = require('../models/city.model');
 const LGA = require('../models/lga.model');
 const Community = require('../models/community.model');
 const connectDB = require('../config/db');
@@ -14,28 +13,29 @@ const showIds = async () => {
     try {
         console.log('\n--- DATA CHEAT SHEET FOR POSTMAN ---');
 
-        const state = await State.findOne({ name: 'Oyo State' });
+        // Get Lagos as an example
+        const state = await State.findOne({ name: 'Lagos' });
         if (state) {
-            console.log(`\nSTATE ID (Oyo State): ${state._id}`);
+            console.log(`\nSTATE ID (Lagos): ${state._id}`);
 
-            const city = await City.findOne({ state_id: state._id });
-            if (city) {
-                console.log(`CITY ID (${city.name}): ${city._id}`);
+            const lga = await LGA.findOne({ state_id: state._id });
+            if (lga) {
+                console.log(`LGA ID (${lga.name}): ${lga._id}`);
 
-                const lga = await LGA.findOne({ city_id: city._id });
-                if (lga) {
-                    console.log(`LGA ID (${lga.name}): ${lga._id}`);
-
-                    const community = await Community.findOne({ lga_id: lga._id, is_approved: true });
-                    if (community) {
-                        console.log(`COMMUNITY ID (${community.name}): ${community._id}`);
-                    } else {
-                        console.log('COMMUNITY ID: (No approved communities found yet)');
-                    }
+                const community = await Community.findOne({ lga_id: lga._id, is_approved: true });
+                if (community) {
+                    console.log(`COMMUNITY ID (${community.name}): ${community._id}`);
+                } else {
+                    console.log('COMMUNITY ID: (No approved communities found yet in Lagos)');
                 }
             }
         } else {
-            console.log('\nNo data found. Please run: node src/utils/seedLocations.js first.');
+            const anyState = await State.findOne({});
+            if (anyState) {
+                console.log(`\nSTATE ID (${anyState.name}): ${anyState._id}`);
+            } else {
+                console.log('\nNo states found. Please run: node src/utils/seedLocations.js');
+            }
         }
 
         console.log('\n------------------------------------\n');
@@ -47,3 +47,4 @@ const showIds = async () => {
 };
 
 showIds();
+

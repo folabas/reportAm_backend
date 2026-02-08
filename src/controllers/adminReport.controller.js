@@ -13,7 +13,6 @@ const getAllReportsAdmin = async (req, res) => {
 
         const reports = await Report.find(query)
             .populate('state_id', 'name')
-            .populate('city_id', 'name')
             .populate('lga_id', 'name')
             .sort('-createdAt');
 

@@ -25,10 +25,9 @@ const reportSchema = new mongoose.Schema({
         ref: 'State',
         required: true
     },
-    city_id: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: 'City',
-        required: true
+    city: {
+        type: String,
+        trim: true
     },
     lga_id: {
         type: mongoose.Schema.Types.ObjectId,

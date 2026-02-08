@@ -10,7 +10,7 @@ const createCommunityRequest = async (req, res) => {
             community_name,
             street_name,
             state_id,
-            city_id,
+            city,
             lga_id,
             address_description,
             image
@@ -20,7 +20,7 @@ const createCommunityRequest = async (req, res) => {
             community_name,
             street_name,
             state_id,
-            city_id,
+            city,
             lga_id,
             address_description,
             image
@@ -39,7 +39,6 @@ const getCommunityRequests = async (req, res) => {
     try {
         const requests = await CommunityRequest.find({})
             .populate('state_id', 'name')
-            .populate('city_id', 'name')
             .populate('lga_id', 'name')
             .sort('-createdAt');
         res.json(requests);
@@ -68,7 +67,7 @@ const approveCommunityRequest = async (req, res) => {
             name: request.community_name,
             street_name: request.street_name,
             state_id: request.state_id,
-            city_id: request.city_id,
+            city: request.city,
             lga_id: request.lga_id,
             address_description: request.address_description,
             image: request.image,
