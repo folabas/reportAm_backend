@@ -11,9 +11,17 @@ const app = express();
 // Trust proxy (required for Render)
 app.set('trust proxy', 1);
 
-// Middleware
-app.use(cors());
+// CORS Configuration
+app.use(cors({
+    origin: ['http://localhost:3000', 'http://localhost:3001', 'http://localhost:5173'],
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'],
+    allowedHeaders: ['Content-Type', 'Authorization']
+}));
+
+// Body Parser Middleware
 app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 
 // Serve uploads folder statically
 app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
@@ -41,9 +49,35 @@ app.use('/api/uploads', require('./routes/upload.routes.js'));
 
 // Error handling middleware
 app.use((err, req, res, next) => {
+    console.error('Error:', err);
+
+    // Handle Mongoose validation errors
+    if (err.name === 'ValidationError') {
+        const errors = Object.values(err.errors).map(e => e.message);
+        return res.status(400).json({
+            message: 'Validation failed',
+            errors: errors
+        });
+    }
+
+    // Handle Mongoose CastError (invalid ObjectId)
+    if (err.name === 'CastError') {
+        return res.status(400).json({
+            message: 'Invalid ID format'
+        });
+    }
+
+    // Handle duplicate key errors
+    if (err.code === 11000) {
+        return res.status(400).json({
+            message: 'Duplicate entry found'
+        });
+    }
+
+    // Default error response
     const statusCode = res.statusCode === 200 ? 500 : res.statusCode;
     res.status(statusCode).json({
-        message: err.message,
+        message: err.message || 'Internal server error',
         stack: process.env.NODE_ENV === 'production' ? null : err.stack,
     });
 });

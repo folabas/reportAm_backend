@@ -9,9 +9,9 @@ const createReport = async (req, res) => {
         const {
             type,
             category,
-            image,
             description,
             state_id,
+            city_id,  // Accept city_id as alias for state_id
             city,
             lga_id,
             community_name,
@@ -22,26 +22,72 @@ const createReport = async (req, res) => {
             is_emergency
         } = req.body;
 
+        // Validate required fields
+        const requiredFields = ['type', 'category', 'description', 'address_text', 'community_name'];
+        const missingFields = requiredFields.filter(field => !req.body[field]);
+
+        if (missingFields.length > 0) {
+            return res.status(400).json({
+                message: 'Missing required fields',
+                required: ['type', 'category', 'description', 'image', 'city_id', 'address_text', 'community_name'],
+                missing: missingFields
+            });
+        }
+
+        // Check if image was uploaded
+        if (!req.file) {
+            return res.status(400).json({
+                message: 'Missing required fields',
+                required: ['type', 'category', 'description', 'image', 'city_id', 'address_text', 'community_name'],
+                missing: ['image']
+            });
+        }
+
+        // Use city_id if provided, otherwise use state_id
+        const stateId = city_id || state_id;
+        if (!stateId) {
+            return res.status(400).json({
+                message: 'Missing required fields',
+                required: ['type', 'category', 'description', 'image', 'city_id', 'address_text', 'community_name'],
+                missing: ['city_id']
+            });
+        }
+
+        // Generate image URL from uploaded file
+        const imageUrl = `/uploads/${req.file.filename}`;
+
+        // Create report in database
         const report = await Report.create({
             type,
             category,
-            image,
+            image: imageUrl,
             description,
-            state_id,
+            state_id: stateId,
             city,
-            lga_id,
+            lga_id: lga_id || null,
             community_name,
             community_id: community_id || null,
             address_text,
-            lat,
-            lng,
-            is_emergency: is_emergency || false,
+            lat: lat ? parseFloat(lat) : null,
+            lng: lng ? parseFloat(lng) : null,
+            is_emergency: is_emergency === 'true' || is_emergency === true,
             status: 'pending'
         });
 
-        res.status(201).json(report);
+        // Return response with affected_count
+        const reportObj = report.toObject();
+        reportObj.affected_count = 0;
+
+        res.status(201).json({
+            message: 'Report created successfully',
+            report: reportObj
+        });
     } catch (error) {
-        res.status(400).json({ message: error.message });
+        console.error('Report creation error:', error);
+        res.status(400).json({
+            message: 'Failed to create report',
+            error: error.message
+        });
     }
 };
 
@@ -50,7 +96,7 @@ const createReport = async (req, res) => {
 // @access  Public
 const getReports = async (req, res) => {
     try {
-        const { state, city, lga, community, community_id, category, type } = req.query;
+        const { state, city, lga, community, community_id, category, type, status, is_emergency } = req.query;
         let query = {};
 
         if (state) query.state_id = state;
@@ -60,6 +106,8 @@ const getReports = async (req, res) => {
         if (community_id) query.community_id = community_id;
         if (category) query.category = category;
         if (type) query.type = type;
+        if (status) query.status = status;
+        if (is_emergency !== undefined) query.is_emergency = is_emergency === 'true' || is_emergency === true;
 
         // Pagination
         const page = parseInt(req.query.page) || 1;
@@ -148,7 +196,13 @@ const markAffected = async (req, res) => {
             fingerprint: fingerprint || ''
         });
 
-        res.status(201).json({ message: 'Marked as affected' });
+        // Get updated affected count
+        const affected_count = await AffectedReport.countDocuments({ report_id });
+
+        res.status(201).json({
+            message: 'Marked as affected',
+            affected_count
+        });
     } catch (error) {
         res.status(400).json({ message: error.message });
     }
@@ -164,7 +218,13 @@ const removeAffected = async (req, res) => {
 
         await AffectedReport.deleteOne({ report_id, ip_address });
 
-        res.json({ message: 'Removed affected status' });
+        // Get updated affected count
+        const affected_count = await AffectedReport.countDocuments({ report_id });
+
+        res.json({
+            message: 'Unmarked as affected',
+            affected_count
+        });
     } catch (error) {
         res.status(400).json({ message: error.message });
     }

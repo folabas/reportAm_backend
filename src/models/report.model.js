@@ -32,7 +32,7 @@ const reportSchema = new mongoose.Schema({
     lga_id: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'LGA',
-        required: true
+        required: false  // Changed from required: true to optional
     },
     community_name: {
         type: String,
@@ -66,10 +66,25 @@ const reportSchema = new mongoose.Schema({
     },
     status: {
         type: String,
-        enum: ['pending', 'resolved'],
+        enum: ['pending', 'in_progress', 'resolved'],  // Added 'in_progress'
         default: 'pending'
     }
-}, { timestamps: true });
+}, {
+    timestamps: true,
+    toJSON: { virtuals: true },
+    toObject: { virtuals: true }
+});
+
+// Virtual field: city_id as alias for state_id (for API compatibility)
+reportSchema.virtual('city_id').get(function () {
+    return this.state_id;
+});
+
+// Indexes for performance
+reportSchema.index({ status: 1, createdAt: -1 });
+reportSchema.index({ type: 1 });
+reportSchema.index({ state_id: 1 });
+reportSchema.index({ is_emergency: 1 });
 
 // Validation for general report (community_name must be null)
 reportSchema.pre('validate', function () {

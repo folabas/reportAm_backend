@@ -8,7 +8,7 @@ const Community = require('../models/community.model');
 const getStates = async (req, res) => {
     try {
         const states = await State.find({}).sort('name');
-        res.json(states);
+        res.json({ data: states });
     } catch (error) {
         res.status(500).json({ message: error.message });
     }
@@ -17,7 +17,7 @@ const getStates = async (req, res) => {
 const getLGAs = async (req, res) => {
     try {
         const lgas = await LGA.find({ state_id: req.params.stateId }).sort('name');
-        res.json(lgas);
+        res.json({ data: lgas });
     } catch (error) {
         res.status(500).json({ message: error.message });
     }
@@ -32,7 +32,7 @@ const getCommunities = async (req, res) => {
             lga_id: req.params.lgaId,
             is_approved: true
         }).sort('name');
-        res.json(communities);
+        res.json({ data: communities });
     } catch (error) {
         res.status(500).json({ message: error.message });
     }
@@ -47,7 +47,7 @@ const getGlobalCommunities = async (req, res) => {
             .populate('state_id', 'name')
             .populate('lga_id', 'name')
             .sort('name');
-        res.json(communities);
+        res.json({ data: communities });
     } catch (error) {
         res.status(500).json({ message: error.message });
     }

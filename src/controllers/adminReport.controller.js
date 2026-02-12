@@ -37,8 +37,10 @@ const updateReportStatus = async (req, res) => {
     try {
         const { status } = req.body;
 
-        if (!['pending', 'resolved'].includes(status)) {
-            return res.status(400).json({ message: 'Invalid status. Must be pending or resolved' });
+        if (!['pending', 'in_progress', 'resolved'].includes(status)) {
+            return res.status(400).json({
+                message: 'Invalid status. Must be pending, in_progress, or resolved'
+            });
         }
 
         const report = await Report.findById(req.params.id);
@@ -72,7 +74,7 @@ const deleteReport = async (req, res) => {
         // Delete the report
         await report.deleteOne();
 
-        res.json({ message: 'Report and associated data deleted' });
+        res.json({ message: 'Report deleted successfully' });
     } catch (error) {
         res.status(400).json({ message: error.message });
     }
