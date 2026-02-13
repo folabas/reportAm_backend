@@ -351,6 +351,37 @@
                     }
                 }
             ]
+        },
+        {
+            "name": "Comments",
+            "description": "Endpoints for adding and viewing comments on reports, including nested replies.",
+            "item": [
+                {
+                    "name": "Add Comment / Reply",
+                    "request": {
+                        "method": "POST",
+                        "description": "Add a comment to a report. To reply to another comment, include the parent_id in the body.",
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"content\": \"This is a top-level comment\",\n  \"author_name\": \"John Doe\",\n  \"fingerprint\": \"device-xyz-123\",\n  \"parent_id\": null\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        },
+                        "url": "{{baseUrl}}/api/reports/:report_id/comments"
+                    }
+                },
+                {
+                    "name": "Get Report Comments",
+                    "request": {
+                        "method": "GET",
+                        "description": "Fetch all comments for a report in a nested tree structure (comments containing their replies).",
+                        "url": "{{baseUrl}}/api/reports/:report_id/comments"
+                    }
+                }
+            ]
         }
     ],
     "event": [

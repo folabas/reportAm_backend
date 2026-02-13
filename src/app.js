@@ -14,8 +14,8 @@ app.set('trust proxy', 1);
 // CORS Configuration
 app.use(cors({
     origin: [
-        'http://localhost:3000', 
-        'http://localhost:3001', 
+        'http://localhost:3000',
+        'http://localhost:3001',
         'http://localhost:5173',
         'https://reportam.vercel.app',
         'https://reportam-admin.vercel.app'
@@ -50,6 +50,7 @@ app.use('/api/admin/auth', require('./routes/adminAuth.routes.js'));
 app.use('/api/locations', require('./routes/location.routes.js'));
 app.use('/api/community-requests', require('./routes/communityRequest.routes.js'));
 app.use('/api/reports', require('./routes/report.routes.js'));
+app.use('/api/reports', require('./routes/comment.routes.js'));
 app.use('/api/admin/reports', require('./routes/adminReport.routes.js'));
 app.use('/api/uploads', require('./routes/upload.routes.js'));
 
