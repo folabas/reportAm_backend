@@ -52,6 +52,7 @@ app.use('/api/community-requests', require('./routes/communityRequest.routes.js'
 app.use('/api/reports', require('./routes/report.routes.js'));
 app.use('/api', require('./routes/comment.routes.js'));
 app.use('/api/admin/reports', require('./routes/adminReport.routes.js'));
+app.use('/api/admin/comments', require('./routes/adminComment.routes.js'));
 app.use('/api/uploads', require('./routes/upload.routes.js'));
 
 // Error handling middleware
