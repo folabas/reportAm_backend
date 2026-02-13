@@ -380,6 +380,40 @@
                         "description": "Fetch all comments for a report in a nested tree structure (comments containing their replies).",
                         "url": "{{baseUrl}}/api/reports/:report_id/comments"
                     }
+                },
+                {
+                    "name": "Edit Comment",
+                    "request": {
+                        "method": "PATCH",
+                        "description": "Update the content of a comment. Requires the original fingerprint to authorize.",
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"content\": \"This comment has been updated\",\n  \"fingerprint\": \"device-xyz-123\"\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        },
+                        "url": "{{baseUrl}}/api/reports/comments/:comment_id"
+                    }
+                },
+                {
+                    "name": "Delete Comment",
+                    "request": {
+                        "method": "DELETE",
+                        "description": "Permanently delete a comment. If it's a top-level comment, all its replies will also be deleted. Requires the original fingerprint or Admin authorization.",
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"fingerprint\": \"device-xyz-123\"\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        },
+                        "url": "{{baseUrl}}/api/reports/comments/:comment_id"
+                    }
                 }
             ]
         }

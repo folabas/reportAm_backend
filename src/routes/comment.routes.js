@@ -14,4 +14,10 @@ router.post('/reports/:id/comments', commentController.createComment);
 // POST /api/comments/:id/like
 router.post('/comments/:id/like', commentController.likeComment);
 
+// Edit a comment (requires fingerprint or admin auth)
+router.patch('/comments/:comment_id', commentController.editComment);
+
+// Delete a comment (requires fingerprint or admin auth)
+router.delete('/comments/:comment_id', commentController.deleteComment);
+
 module.exports = router;
