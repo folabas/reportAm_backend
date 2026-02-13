@@ -13,7 +13,13 @@ app.set('trust proxy', 1);
 
 // CORS Configuration
 app.use(cors({
-    origin: ['http://localhost:3000', 'http://localhost:3001', 'http://localhost:5173'],
+    origin: [
+        'http://localhost:3000', 
+        'http://localhost:3001', 
+        'http://localhost:5173',
+        'https://reportam.vercel.app',
+        'https://reportam-admin.vercel.app'
+    ],
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'],
     allowedHeaders: ['Content-Type', 'Authorization']
