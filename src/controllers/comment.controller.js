@@ -16,17 +16,6 @@ exports.getComments = async (req, res) => {
             .limit(parseInt(limit))
             .lean();
 
-        // Organize into threads (optional but nice to have)
-        // Since we are paginating, full threading might be tricky if parents are on other pages.
-        // For now, let's just return the flat list sorted by date as requested,
-        // but maybe the frontend handles threading?
-        // User asked: "sorted by createdAt (descending) or grouped by thread if possible"
-        // If we paginate, flat list is safer. But let's try to group if they are on the same page.
-        // Actually, for simplicity and ensuring pagination works, let's return flat list.
-        // If we want threading, we usually fetch top-level comments and then populate replies, or fetch all.
-
-        // Let's return flat list for now, as it's easier to paginate.
-
         res.status(200).json(comments);
     } catch (error) {
         console.error('Error fetching comments:', error);
@@ -35,16 +24,14 @@ exports.getComments = async (req, res) => {
 };
 
 /**
-<<<<<<< HEAD
  * Post a comment
  * POST /api/reports/:id/comments
  */
 exports.createComment = async (req, res) => {
     try {
         const { id } = req.params; // reportId
-        const { text, parentId, username, userId } = req.body;
-        // userId might come from auth middleware if added, but spec says "userId (Optional): Reference to User if logged in"
-        // We generally expect req.user from auth middleware, but let's assume body for now if not authenticated.
+        const { text, parentId, username, userId, fingerprint } = req.body;
+        const ip_address = req.ip || req.headers['x-forwarded-for'] || req.socket.remoteAddress;
 
         // Validate text length
         if (!text || text.length > 50) {
@@ -63,21 +50,29 @@ exports.createComment = async (req, res) => {
             if (!parent) {
                 return res.status(404).json({ message: 'Parent comment not found' });
             }
+            // Limit nesting: Only allow replies to top-level comments
+            if (parent.parentId !== null) {
+                return res.status(400).json({ message: 'Only two levels of comments are allowed' });
+            }
         }
 
         const newComment = new Comment({
             reportId: id,
-            userId: userId || null, // Or req.user? keeping flexible as per spec
+            userId: userId || null,
             username: username || 'Anonymous User',
             text,
             parentId: parentId || null,
-            likes: []
+            likes: [],
+            fingerprint: fingerprint || '',
+            ip_address
         });
 
         await newComment.save();
 
-        // Increment commentsCount in Report
-        await Report.findByIdAndUpdate(id, { $inc: { commentsCount: 1 } });
+        // Increment commentsCount in Report if the field exists
+        if (report.commentsCount !== undefined) {
+            await Report.findByIdAndUpdate(id, { $inc: { commentsCount: 1 } });
+        }
 
         res.status(201).json(newComment);
     } catch (error) {
@@ -93,25 +88,13 @@ exports.createComment = async (req, res) => {
 exports.likeComment = async (req, res) => {
     try {
         const { id } = req.params; // commentId
-        // Identifier for like: User ID or IP
         const userIdOrIp = req.body.userId || req.ip || req.headers['x-forwarded-for'] || req.socket.remoteAddress;
 
         const comment = await Comment.findById(id);
-=======
- * Edit a comment (Only by author via fingerprint or Admin)
- */
-exports.editComment = async (req, res) => {
-    try {
-        const { comment_id } = req.params;
-        const { content, fingerprint } = req.body;
-
-        const comment = await Comment.findById(comment_id);
->>>>>>> c5ae2f78f68a28203fdce858a396490de5c2e1d7
         if (!comment) {
             return res.status(404).json({ message: 'Comment not found' });
         }
 
-<<<<<<< HEAD
         const index = comment.likes.indexOf(userIdOrIp);
         if (index === -1) {
             // Like
@@ -127,14 +110,29 @@ exports.editComment = async (req, res) => {
     } catch (error) {
         console.error('Error liking comment:', error);
         res.status(500).json({ message: 'Error liking comment', error: error.message });
-=======
+    }
+};
+
+/**
+ * Edit a comment (Only by author via fingerprint or Admin)
+ */
+exports.editComment = async (req, res) => {
+    try {
+        const { comment_id } = req.params;
+        const { text, fingerprint } = req.body;
+
+        const comment = await Comment.findById(comment_id);
+        if (!comment) {
+            return res.status(404).json({ message: 'Comment not found' });
+        }
+
         // Check if author (via fingerprint) or Admin
         const isAdmin = req.headers.authorization && req.headers.authorization.startsWith('Bearer');
         if (!isAdmin && comment.fingerprint !== fingerprint) {
             return res.status(403).json({ message: 'You are not authorized to edit this comment' });
         }
 
-        comment.content = content;
+        comment.text = text;
         await comment.save();
 
         res.status(200).json({
@@ -153,7 +151,7 @@ exports.editComment = async (req, res) => {
 exports.deleteComment = async (req, res) => {
     try {
         const { comment_id } = req.params;
-        const { fingerprint } = req.body; // Fingerprint required unless Admin
+        const { fingerprint } = req.body;
 
         const comment = await Comment.findById(comment_id);
         if (!comment) {
@@ -167,8 +165,8 @@ exports.deleteComment = async (req, res) => {
         }
 
         // If it's a top-level comment, delete all its replies as well
-        if (!comment.parent_id) {
-            await Comment.deleteMany({ parent_id: comment._id });
+        if (!comment.parentId) {
+            await Comment.deleteMany({ parentId: comment._id });
         }
 
         await Comment.findByIdAndDelete(comment_id);
@@ -179,6 +177,5 @@ exports.deleteComment = async (req, res) => {
     } catch (error) {
         console.error('Error deleting comment:', error);
         res.status(500).json({ message: 'Error deleting comment', error: error.message });
->>>>>>> c5ae2f78f68a28203fdce858a396490de5c2e1d7
     }
 };

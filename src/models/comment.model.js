@@ -27,7 +27,15 @@ const commentSchema = new mongoose.Schema({
     },
     likes: [{
         type: String // User ID or IP address
-    }]
+    }],
+    fingerprint: {
+        type: String,
+        default: ''
+    },
+    ip_address: {
+        type: String,
+        required: true
+    }
 }, {
     timestamps: true,
     toJSON: { virtuals: true },
