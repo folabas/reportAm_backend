@@ -9,4 +9,10 @@ router.post('/:report_id/comments', commentController.addComment);
 // Get all comments for a report (nested structure)
 router.get('/:report_id/comments', commentController.getCommentsForReport);
 
+// Edit a comment (requires fingerprint or admin auth)
+router.patch('/comments/:comment_id', commentController.editComment);
+
+// Delete a comment (requires fingerprint or admin auth)
+router.delete('/comments/:comment_id', commentController.deleteComment);
+
 module.exports = router;
