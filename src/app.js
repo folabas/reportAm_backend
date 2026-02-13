@@ -50,7 +50,7 @@ app.use('/api/admin/auth', require('./routes/adminAuth.routes.js'));
 app.use('/api/locations', require('./routes/location.routes.js'));
 app.use('/api/community-requests', require('./routes/communityRequest.routes.js'));
 app.use('/api/reports', require('./routes/report.routes.js'));
-app.use('/api/reports', require('./routes/comment.routes.js'));
+app.use('/api', require('./routes/comment.routes.js'));
 app.use('/api/admin/reports', require('./routes/adminReport.routes.js'));
 app.use('/api/uploads', require('./routes/upload.routes.js'));
 

@@ -2,11 +2,16 @@ const express = require('express');
 const router = express.Router();
 const commentController = require('../controllers/comment.controller');
 
-// Post a comment to a report
-// Body: { content, author_name, fingerprint, parent_id? }
-router.post('/:report_id/comments', commentController.addComment);
+// Fetch Comments
+// GET /api/reports/:id/comments
+router.get('/reports/:id/comments', commentController.getComments);
 
-// Get all comments for a report (nested structure)
-router.get('/:report_id/comments', commentController.getCommentsForReport);
+// Post a Comment / Reply
+// POST /api/reports/:id/comments
+router.post('/reports/:id/comments', commentController.createComment);
+
+// Like a Comment
+// POST /api/comments/:id/like
+router.post('/comments/:id/like', commentController.likeComment);
 
 module.exports = router;

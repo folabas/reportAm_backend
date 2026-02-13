@@ -68,6 +68,10 @@ const reportSchema = new mongoose.Schema({
         type: String,
         enum: ['pending', 'in_progress', 'resolved'],  // Added 'in_progress'
         default: 'pending'
+    },
+    commentsCount: {
+        type: Number,
+        default: 0
     }
 }, {
     timestamps: true,

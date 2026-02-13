@@ -2,95 +2,118 @@ const Comment = require('../models/comment.model');
 const Report = require('../models/report.model');
 
 /**
- * Add a comment to a report or a reply to another comment
+ * Get comments for a report
+ * GET /api/reports/:id/comments
  */
-exports.addComment = async (req, res) => {
+exports.getComments = async (req, res) => {
     try {
-        const { report_id } = req.params;
-        const { content, author_name, parent_id, fingerprint } = req.body;
-        const ip_address = req.ip || req.headers['x-forwarded-for'] || req.socket.remoteAddress;
+        const { id } = req.params; // reportId
+        const { page = 1, limit = 20 } = req.query;
 
-        // Verify report exists
-        const report = await Report.findById(report_id);
-        if (!report) {
-            return res.status(404).json({ message: 'Report not found' });
-        }
+        const comments = await Comment.find({ reportId: id })
+            .sort({ createdAt: -1 })
+            .skip((page - 1) * limit)
+            .limit(parseInt(limit))
+            .lean();
 
-        // If it's a reply, verify parent comment exists and ensure it's a top-level comment
-        if (parent_id) {
-            const parentComment = await Comment.findById(parent_id);
-            if (!parentComment) {
-                return res.status(404).json({ message: 'Parent comment not found' });
-            }
-            // Ensure the parent comment belongs to the same report
-            if (parentComment.report_id.toString() !== report_id) {
-                return res.status(400).json({ message: 'Parent comment does not belong to this report' });
-            }
-            // Limit nesting: Only allow replies to top-level comments (parent_id must be null)
-            if (parentComment.parent_id !== null) {
-                return res.status(400).json({ message: 'Only two levels of comments are allowed' });
-            }
-        }
+        // Organize into threads (optional but nice to have)
+        // Since we are paginating, full threading might be tricky if parents are on other pages.
+        // For now, let's just return the flat list sorted by date as requested,
+        // but maybe the frontend handles threading?
+        // User asked: "sorted by createdAt (descending) or grouped by thread if possible"
+        // If we paginate, flat list is safer. But let's try to group if they are on the same page.
+        // Actually, for simplicity and ensuring pagination works, let's return flat list.
+        // If we want threading, we usually fetch top-level comments and then populate replies, or fetch all.
 
-        const comment = new Comment({
-            report_id,
-            parent_id: parent_id || null,
-            content,
-            author_name: author_name || 'Anonymous',
-            fingerprint: fingerprint || '',
-            ip_address
-        });
+        // Let's return flat list for now, as it's easier to paginate.
 
-        await comment.save();
-
-        res.status(201).json({
-            message: 'Comment added successfully',
-            comment
-        });
+        res.status(200).json(comments);
     } catch (error) {
-        console.error('Error adding comment:', error);
-        res.status(500).json({ message: 'Error adding comment', error: error.message });
+        console.error('Error fetching comments:', error);
+        res.status(500).json({ message: 'Error fetching comments', error: error.message });
     }
 };
 
 /**
- * Get all comments for a specific report
+ * Post a comment
+ * POST /api/reports/:id/comments
  */
-exports.getCommentsForReport = async (req, res) => {
+exports.createComment = async (req, res) => {
     try {
-        const { report_id } = req.params;
+        const { id } = req.params; // reportId
+        const { text, parentId, username, userId } = req.body;
+        // userId might come from auth middleware if added, but spec says "userId (Optional): Reference to User if logged in"
+        // We generally expect req.user from auth middleware, but let's assume body for now if not authenticated.
 
-        // Get all comments for the report
-        const allComments = await Comment.find({ report_id })
-            .sort({ createdAt: 1 })
-            .lean();
+        // Validate text length
+        if (!text || text.length > 50) {
+            return res.status(400).json({ message: 'Text is required and must be max 50 characters' });
+        }
 
-        // Organize into tree structure (top-level comments with their replies)
-        const commentMap = {};
-        const rootComments = [];
+        // Verify report exists
+        const report = await Report.findById(id);
+        if (!report) {
+            return res.status(404).json({ message: 'Report not found' });
+        }
 
-        allComments.forEach(comment => {
-            comment.replies = [];
-            commentMap[comment._id] = comment;
-        });
-
-        allComments.forEach(comment => {
-            if (comment.parent_id) {
-                const parent = commentMap[comment.parent_id];
-                if (parent) {
-                    parent.replies.push(comment);
-                } else {
-                    // Fallback if parent not found for some reason
-                    rootComments.push(comment);
-                }
-            } else {
-                rootComments.push(comment);
+        // Verify parent comment if provided
+        if (parentId) {
+            const parent = await Comment.findById(parentId);
+            if (!parent) {
+                return res.status(404).json({ message: 'Parent comment not found' });
             }
+        }
+
+        const newComment = new Comment({
+            reportId: id,
+            userId: userId || null, // Or req.user? keeping flexible as per spec
+            username: username || 'Anonymous User',
+            text,
+            parentId: parentId || null,
+            likes: []
         });
 
-        res.status(200).json(rootComments);
+        await newComment.save();
+
+        // Increment commentsCount in Report
+        await Report.findByIdAndUpdate(id, { $inc: { commentsCount: 1 } });
+
+        res.status(201).json(newComment);
     } catch (error) {
-        console.error('Error fetching comments:', error);
-        res.status(500).json({ message: 'Error fetching comments', error: error.message });
+        console.error('Error creating comment:', error);
+        res.status(500).json({ message: 'Error creating comment', error: error.message });
+    }
+};
+
+/**
+ * Like a comment
+ * POST /api/comments/:id/like
+ */
+exports.likeComment = async (req, res) => {
+    try {
+        const { id } = req.params; // commentId
+        // Identifier for like: User ID or IP
+        const userIdOrIp = req.body.userId || req.ip || req.headers['x-forwarded-for'] || req.socket.remoteAddress;
+
+        const comment = await Comment.findById(id);
+        if (!comment) {
+            return res.status(404).json({ message: 'Comment not found' });
+        }
+
+        const index = comment.likes.indexOf(userIdOrIp);
+        if (index === -1) {
+            // Like
+            comment.likes.push(userIdOrIp);
+        } else {
+            // Unlike
+            comment.likes.splice(index, 1);
+        }
+
+        await comment.save();
+
+        res.status(200).json({ likesCount: comment.likes.length, likes: comment.likes });
+    } catch (error) {
+        console.error('Error liking comment:', error);
+        res.status(500).json({ message: 'Error liking comment', error: error.message });
     }
 };
