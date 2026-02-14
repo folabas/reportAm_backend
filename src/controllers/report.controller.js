@@ -1,6 +1,31 @@
 const Report = require('../models/report.model');
 const AffectedReport = require('../models/affectedReport.model');
 
+// Helper to format report object
+const formatReport = (report, affectedCount = 0) => {
+    const reportObj = report.toObject ? report.toObject() : report;
+    
+    // Flatten state and lga if they are populated objects
+    if (reportObj.state_id && typeof reportObj.state_id === 'object' && reportObj.state_id.name) {
+        reportObj.state = reportObj.state_id.name;
+        // Keep original ID if needed, or remove it based on strict spec. 
+        // Keeping it for now as 'state_details' might be useful, but minimizing breakage.
+    }
+    
+    if (reportObj.lga_id && typeof reportObj.lga_id === 'object' && reportObj.lga_id.name) {
+        reportObj.lga = reportObj.lga_id.name;
+    }
+
+    // Ensure status format is consistent for frontend (if needed)
+    // The DB uses 'in_progress', frontend might expect 'in-progress'
+    if (reportObj.status === 'in_progress') {
+        reportObj.status = 'in-progress';
+    }
+
+    reportObj.affected_count = affectedCount;
+    return reportObj;
+};
+
 // @desc    Create a new report
 // @route   POST /api/reports
 // @access  Public
@@ -74,9 +99,11 @@ const createReport = async (req, res) => {
             status: 'pending'
         });
 
-        // Return response with affected_count
-        const reportObj = report.toObject();
-        reportObj.affected_count = 0;
+        // Populate state and lga for the response
+        await report.populate('state_id', 'name');
+        await report.populate('lga_id', 'name');
+
+        const reportObj = formatReport(report, 0);
 
         res.status(201).json({
             message: 'Report created successfully',
@@ -106,7 +133,12 @@ const getReports = async (req, res) => {
         if (community_id) query.community_id = community_id;
         if (category) query.category = category;
         if (type) query.type = type;
-        if (status) query.status = status;
+        
+        // Handle status query: map 'in-progress' to 'in_progress' for DB query
+        if (status) {
+            query.status = status === 'in-progress' ? 'in_progress' : status;
+        }
+        
         if (is_emergency !== undefined) query.is_emergency = is_emergency === 'true' || is_emergency === true;
 
         // Pagination
@@ -136,9 +168,7 @@ const getReports = async (req, res) => {
         });
 
         const results = reports.map(report => {
-            const reportObj = report.toObject();
-            reportObj.affected_count = countMap[report._id.toString()] || 0;
-            return reportObj;
+            return formatReport(report, countMap[report._id.toString()] || 0);
         });
 
         res.json({
@@ -167,8 +197,7 @@ const getReportById = async (req, res) => {
 
         const affected_count = await AffectedReport.countDocuments({ report_id: report._id });
 
-        const result = report.toObject();
-        result.affected_count = affected_count;
+        const result = formatReport(report, affected_count);
 
         res.json(result);
     } catch (error) {
@@ -254,9 +283,7 @@ const getReportsByCommunity = async (req, res) => {
         });
 
         const results = reports.map(report => {
-            const reportObj = report.toObject();
-            reportObj.affected_count = countMap[report._id.toString()] || 0;
-            return reportObj;
+            return formatReport(report, countMap[report._id.toString()] || 0);
         });
 
         res.json(results);
@@ -273,3 +300,4 @@ module.exports = {
     markAffected,
     removeAffected
 };
+
