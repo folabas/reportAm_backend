@@ -4,14 +4,14 @@ const AffectedReport = require('../models/affectedReport.model');
 // Helper to format report object
 const formatReport = (report, affectedCount = 0) => {
     const reportObj = report.toObject ? report.toObject() : report;
-    
+
     // Flatten state and lga if they are populated objects
     if (reportObj.state_id && typeof reportObj.state_id === 'object' && reportObj.state_id.name) {
         reportObj.state = reportObj.state_id.name;
         // Keep original ID if needed, or remove it based on strict spec. 
         // Keeping it for now as 'state_details' might be useful, but minimizing breakage.
     }
-    
+
     if (reportObj.lga_id && typeof reportObj.lga_id === 'object' && reportObj.lga_id.name) {
         reportObj.lga = reportObj.lga_id.name;
     }
@@ -79,7 +79,8 @@ const createReport = async (req, res) => {
         }
 
         // Generate image URL from uploaded file
-        const imageUrl = `/uploads/${req.file.filename}`;
+        // With Cloudinary storage, req.file.path contains the secure URL
+        const imageUrl = req.file.path;
 
         // Create report in database
         const report = await Report.create({
@@ -133,12 +134,12 @@ const getReports = async (req, res) => {
         if (community_id) query.community_id = community_id;
         if (category) query.category = category;
         if (type) query.type = type;
-        
+
         // Handle status query: map 'in-progress' to 'in_progress' for DB query
         if (status) {
             query.status = status === 'in-progress' ? 'in_progress' : status;
         }
-        
+
         if (is_emergency !== undefined) query.is_emergency = is_emergency === 'true' || is_emergency === true;
 
         // Pagination
