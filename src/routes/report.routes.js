@@ -10,9 +10,9 @@ const {
     removeAffected
 } = require('../controllers/report.controller');
 
-// POST routes with multer middleware for image upload
-router.post('/', upload.single('image'), handleMulterError, createReport);
-router.post('/emergency', upload.single('image'), handleMulterError, (req, res, next) => {
+// POST routes with multer middleware for media upload
+router.post('/', upload.single('media'), handleMulterError, createReport);
+router.post('/emergency', upload.single('media'), handleMulterError, (req, res, next) => {
     req.body.is_emergency = true;
     next();
 }, createReport);

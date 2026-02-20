@@ -26,6 +26,8 @@ function checkFileType(file, cb) {
     }
 }
 
+const { handleMulterError } = require('../config/multer.config');
+
 const upload = multer({
     storage,
     limits: { fileSize: 20 * 1024 * 1024 }, // 20MB limit
@@ -37,7 +39,14 @@ const upload = multer({
 // @desc    Upload an image or video
 // @route   POST /api/uploads/media
 // @access  Public (for reporting)
-router.post('/media', upload.single('media'), (req, res) => {
+router.post('/media', (req, res, next) => {
+    upload.single('media')(req, res, (err) => {
+        if (err) {
+            return handleMulterError(err, req, res, next);
+        }
+        next();
+    });
+}, (req, res) => {
     if (!req.file) {
         return res.status(400).json({ message: 'No file uploaded' });
     }
@@ -48,7 +57,14 @@ router.post('/media', upload.single('media'), (req, res) => {
 });
 
 // Keep /image for legacy support but use the updated logic
-router.post('/image', upload.single('image'), (req, res) => {
+router.post('/image', (req, res, next) => {
+    upload.single('image')(req, res, (err) => {
+        if (err) {
+            return handleMulterError(err, req, res, next);
+        }
+        next();
+    });
+}, (req, res) => {
     if (!req.file) {
         return res.status(400).json({ message: 'No file uploaded' });
     }
