@@ -64,6 +64,10 @@ const reportSchema = new mongoose.Schema({
         type: Boolean,
         default: false
     },
+    is_video: {
+        type: Boolean,
+        default: false
+    },
     status: {
         type: String,
         enum: ['pending', 'in_progress', 'resolved'],  // Added 'in_progress'

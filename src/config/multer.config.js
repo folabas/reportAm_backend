@@ -13,10 +13,14 @@ cloudinary.config({
 // Configure Cloudinary Storage
 const storage = new CloudinaryStorage({
     cloudinary: cloudinary,
-    params: {
-        folder: 'reportam_reports',
-        allowed_formats: ['jpg', 'png', 'jpeg', 'gif', 'webp'],
-        transformation: [{ width: 1000, crop: "limit" }] // Resize if too large
+    params: async (req, file) => {
+        const isVideo = file.mimetype.startsWith('video/');
+        return {
+            folder: 'reportam_reports',
+            resource_type: 'auto',
+            allowed_formats: isVideo ? ['mp4', 'mov', 'avi', 'mkv'] : ['jpg', 'png', 'jpeg', 'gif', 'webp'],
+            transformation: isVideo ? [] : [{ width: 1000, crop: "limit" }]
+        };
     }
 });
 
@@ -24,7 +28,7 @@ const storage = new CloudinaryStorage({
 const upload = multer({
     storage: storage,
     limits: {
-        fileSize: 10 * 1024 * 1024 // 10MB limit
+        fileSize: 20 * 1024 * 1024 // 20MB limit
     }
 });
 
@@ -33,7 +37,7 @@ const handleMulterError = (err, req, res, next) => {
     if (err instanceof multer.MulterError) {
         if (err.code === 'LIMIT_FILE_SIZE') {
             return res.status(400).json({
-                message: 'File too large. Maximum size is 10MB'
+                message: 'File too large. Maximum size is 20MB'
             });
         }
         return res.status(400).json({

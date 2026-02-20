@@ -44,7 +44,8 @@ const createReport = async (req, res) => {
             address_text,
             lat,
             lng,
-            is_emergency
+            is_emergency,
+            is_video
         } = req.body;
 
         // Validate required fields
@@ -54,17 +55,17 @@ const createReport = async (req, res) => {
         if (missingFields.length > 0) {
             return res.status(400).json({
                 message: 'Missing required fields',
-                required: ['type', 'category', 'description', 'image', 'city_id', 'address_text', 'community_name'],
+                required: ['type', 'category', 'description', 'media', 'city_id', 'address_text', 'community_name'],
                 missing: missingFields
             });
         }
 
-        // Check if image was uploaded
+        // Check if media was uploaded
         if (!req.file) {
             return res.status(400).json({
                 message: 'Missing required fields',
-                required: ['type', 'category', 'description', 'image', 'city_id', 'address_text', 'community_name'],
-                missing: ['image']
+                required: ['type', 'category', 'description', 'media', 'city_id', 'address_text', 'community_name'],
+                missing: ['media']
             });
         }
 
@@ -73,20 +74,20 @@ const createReport = async (req, res) => {
         if (!stateId) {
             return res.status(400).json({
                 message: 'Missing required fields',
-                required: ['type', 'category', 'description', 'image', 'city_id', 'address_text', 'community_name'],
+                required: ['type', 'category', 'description', 'media', 'city_id', 'address_text', 'community_name'],
                 missing: ['city_id']
             });
         }
 
-        // Generate image URL from uploaded file
+        // Generate media URL from uploaded file
         // With Cloudinary storage, req.file.path contains the secure URL
-        const imageUrl = req.file.path;
+        const mediaUrl = req.file.path;
 
         // Create report in database
         const report = await Report.create({
             type,
             category,
-            image: imageUrl,
+            image: mediaUrl,
             description,
             state_id: stateId,
             city,
@@ -97,6 +98,7 @@ const createReport = async (req, res) => {
             lat: lat ? parseFloat(lat) : null,
             lng: lng ? parseFloat(lng) : null,
             is_emergency: is_emergency === 'true' || is_emergency === true,
+            is_video: is_video === 'true' || is_video === true || (req.file.mimetype && req.file.mimetype.startsWith('video/')),
             status: 'pending'
         });
 
