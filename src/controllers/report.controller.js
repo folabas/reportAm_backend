@@ -45,17 +45,18 @@ const createReport = async (req, res) => {
             lat,
             lng,
             is_emergency,
-            is_video
+            is_video,
+            title
         } = req.body;
 
         // Validate required fields
-        const requiredFields = ['type', 'category', 'description', 'address_text', 'community_name'];
+        const requiredFields = ['type', 'category', 'title', 'description', 'address_text', 'community_name'];
         const missingFields = requiredFields.filter(field => !req.body[field]);
 
         if (missingFields.length > 0) {
             return res.status(400).json({
                 message: 'Missing required fields',
-                required: ['type', 'category', 'description', 'media', 'city_id', 'address_text', 'community_name'],
+                required: ['type', 'category', 'title', 'description', 'media', 'city_id', 'address_text', 'community_name'],
                 missing: missingFields
             });
         }
@@ -87,6 +88,7 @@ const createReport = async (req, res) => {
         const report = await Report.create({
             type,
             category,
+            title,
             image: mediaUrl,
             description,
             state_id: stateId,
